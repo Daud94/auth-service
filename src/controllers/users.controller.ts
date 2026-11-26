@@ -1,18 +1,40 @@
 import type { Request, Response } from 'express';
 import { usersService } from '../services/users.service';
 
-export function register(req: Request, res: Response) {
-  res.status(201).json(usersService.register(req.body.phone, req.body.password));
+function credentials(body: unknown): { phone: string; password: string } | null {
+  const { phone, password } = (body ?? {}) as { phone?: unknown; password?: unknown };
+  if (typeof phone !== 'string' || !phone || typeof password !== 'string' || !password) return null;
+  return { phone, password };
 }
 
-export function login(req: Request, res: Response) {
-  const result = usersService.login(req.body.phone, req.body.password);
-  if (!result) return res.status(401).end();
-  res.json(result);
+export async function register(req: Request, res: Response) {
+  const input = credentials(req.body);
+  if (!input) return res.status(400).json({ error: 'phone and password are required' });
+  try {
+    const { id } = await usersService.register(input.phone, input.password);
+    res.status(201).json({ id });
+  } catch {
+    res.status(500).end();
+  }
 }
 
-export function me(_req: Request, res: Response) {
-  res.json({});
+export async function login(req: Request, res: Response) {
+  const input = credentials(req.body);
+  if (!input) return res.status(401).end();
+  try {
+    const result = await usersService.login(input.phone, input.password);
+    if (!result) return res.status(401).end();
+    res.json(result);
+  } catch {
+    res.status(500).end();
+  }
+}
+
+export function me(req: Request, res: Response) {
+  const id = req.user?.sub;
+  const user = id ? usersService.findById(id) : null;
+  if (!user) return res.status(404).end();
+  res.json(user);
 }
 
 export function updateAvatar(_req: Request, res: Response) {
@@ -24,9 +46,12 @@ export function removeAvatar(_req: Request, res: Response) {
 }
 
 export function getById(req: Request, res: Response) {
-  res.json(usersService.findById(req.params.id));
+  const user = usersService.findById(req.params.id);
+  if (!user) return res.status(404).end();
+  res.json(user);
 }
 
 export function remove(req: Request, res: Response) {
-  res.json({ deleted: req.params.id });
+  if (!usersService.remove(req.params.id)) return res.status(404).end();
+  res.status(204).end();
 }
