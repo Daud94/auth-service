@@ -1,0 +1,13 @@
+# Placeholder created by scripts/setup-github.mjs so WayaGram Automation can dispatch it.
+# It succeeds without deploying anything. Replace the step with your real deploy-production when this repo is deployed.
+name: deploy-production
+on:
+  workflow_dispatch:
+    inputs:
+      version: { required: false }
+      environment: { required: false }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "deploy-production requested with ${{ toJson(github.event.inputs) }} (placeholder, nothing deployed)"
